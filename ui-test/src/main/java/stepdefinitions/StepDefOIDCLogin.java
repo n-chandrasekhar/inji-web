@@ -418,7 +418,23 @@ public class StepDefOIDCLogin {
 	public void user_selects_profile_option() {
 		loginpage.clickOnProfileOption();
 	}
+	
+	@Then("user selects profile option for mobile")
+	public void user_selects_profile_option_for_mobileView() {
+		loginpage.clickOnProfileOptionMobileView();
+	}
+	
+	@Then("user click on logout button for mobile")
+	public void user_selects_logout_option_for_mobileView() {
+		loginpage.clickOnLogoutOptionMobileView();
+	}
+	
+	@Then("user click on FAQ button for mobile")
+	public void user_selects_faq_option_for_mobileView() {
+		loginpage.clickOnFaqOptionMobileView();
+	}
 
+	
 	@Then("user verify My Profile Text")
 	public void user_verify_MyProfile_Text() {
 		try {
@@ -783,6 +799,23 @@ public class StepDefOIDCLogin {
 			throw e;
 		}
 	}
+	
+	@Then("user verifies {string} option is present in dropdown for mobile")
+	public void verifyOptionInDropdownForMobile(String optionText) {
+		try {
+			boolean isDisplayed = loginpage.isMobileMenuOptionPresent(optionText);
+			assertTrue(isDisplayed, "profile drop down options" + optionText + " is visible");
+			test.log(Status.PASS,
+					"User successfully verified that profile drop down options" + optionText + "is visible");
+		} catch (AssertionError | NoSuchElementException e) {
+			test.log(Status.FAIL, "Assertion/Element error: " + e.getMessage());
+			test.log(Status.FAIL, ExceptionUtils.getStackTrace(e));
+			ScreenshotUtil.attachScreenshot(driver, "FailureScreenshot");
+			throw e;
+		}
+	}
+	
+	
 
 	@And("user click on FAQ link")
 	public void user_click_on_faq_link() {
@@ -874,10 +907,10 @@ public class StepDefOIDCLogin {
 			assertTrue(!loginpage.isSubmitButtonEnabled(), "After attempt " + i + ": Submit button disabled");
 		}
 	}
-	
-	
+
 	@Then("user enters the wrong passcode {string} to lessthan max failed attempts before perm lock")
-	public void user_enters_wrong_passcode_to_lessthan_max_failed_beforeperm_attempts(String wrongPasscode) throws Exception {
+	public void user_enters_wrong_passcode_to_lessthan_max_failed_beforeperm_attempts(String wrongPasscode)
+			throws Exception {
 		// Get maxFailedAttempts from actuator and subtract 1
 		int noOfTimes = BaseTest.getWalletPasscodeSettings().get("maxFailedAttempts") - 1;
 
@@ -890,8 +923,8 @@ public class StepDefOIDCLogin {
 
 	@Then("user enters the wrong passcode {string} for max failed attempts")
 	public void user_enters_wrong_passcode_for_max_failed_attempts(String wrongPasscode) throws Exception {
-		logger.info("Maximum no.of attempts:"+ BaseTest.getWalletPasscodeSettings().get("maxFailedAttempts"));
-		
+		logger.info("Maximum no.of attempts:" + BaseTest.getWalletPasscodeSettings().get("maxFailedAttempts"));
+
 		int maxNoOfTimes = BaseTest.getWalletPasscodeSettings().get("maxFailedAttempts");
 
 		for (int i = 1; i <= maxNoOfTimes; i++) {
@@ -916,14 +949,14 @@ public class StepDefOIDCLogin {
 
 	@Then("user wait for temporary lock to expire")
 	public void user_wait_for_tempory_lock_to_expire() throws InterruptedException, Exception {
-		logger.info("Temp Lock time:"+ BaseTest.getWalletPasscodeSettings().get("retryBlockedUntil")*60);
+		logger.info("Temp Lock time:" + BaseTest.getWalletPasscodeSettings().get("retryBlockedUntil") * 60);
 
 		BasePage.waitForSeconds(driver, (BaseTest.getWalletPasscodeSettings().get("retryBlockedUntil") * 60) - 10);
 		driver.navigate().refresh();
 		assertTrue(!loginpage.isSubmitButtonEnabled(), "Before temporaty lock Expire Submit button is enabled");
 		BasePage.waitForSeconds(driver, BaseTest.getWalletPasscodeSettings().get("retryBlockedUntil") * 60);
 		driver.navigate().refresh();
-		Thread.sleep(5000);
+		loginpage.waitUntilPasscodeEnabled();
 		assertTrue(!loginpage.isPasscodeInputDisabled(), "Passocde button is not enabled after temporaty lock Expire");
 	}
 
@@ -931,11 +964,15 @@ public class StepDefOIDCLogin {
 	public void user_verify_warning_message_before_permanent_lock() throws InterruptedException {
 		assertTrue(loginpage.isPermLockWarningMsgDisplayed(), "Warning message before temp lock is not displayed");
 	}
-	
+
 	@Then("user verify the wallet permanently locked")
 	public void user_verify_the_wallet_permanently_locked() throws InterruptedException {
 		assertTrue(!loginpage.isPermLockMsgDisplayed(), "Permanent lock message is not displayed");
-		
+
+	}
+	@Then("user click on hamburger menu from user account")
+	public void user_click_on_hamburger_menu() {
+		loginpage.clickOnHamburgerMenu();
 	}
 
 }

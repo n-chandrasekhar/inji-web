@@ -47,8 +47,9 @@ public class StepDefSunbirdCredentials {
 	public static String policynumber = SimplePostForAutoGenId.policyNumber;
 	public static String fullname = SimplePostForAutoGenId.fullName;
 	public static String dob = SimplePostForAutoGenId.dob;
-	static LocalDate date = LocalDate.parse(dob);
-	public static String formattedDate = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"));
+	//static LocalDate date = LocalDate.parse(dob);
+	//public static String formattedDate = date.format(DateTimeFormatter.ofPattern("MM-dd-yyyy"));
+	public static String formattedDate = "01-01-2024";
 
 	public static String screenshotPath = System.getProperty("user.dir") + "/test-output/screenshots";
 
@@ -137,7 +138,8 @@ public class StepDefSunbirdCredentials {
 	public void user_enter_the_policy_number() {
 		try {
 			Thread.sleep(3000); // Consider using WebDriverWait instead of Thread.sleep for better efficiency.
-			sunbirdCredentials.enterPolicyNumer(policynumber);
+			sunbirdCredentials.enterPolicyNumer("986-986-986");
+			//sunbirdCredentials.enterPolicyNumer(policynumber);
 			test.log(Status.PASS, "User successfully entered the policy number: " + policynumber);
 		} catch (NoSuchElementException e) {
 			test.log(Status.FAIL, "Element not found while entering the policy number: " + e.getMessage());
@@ -160,7 +162,8 @@ public class StepDefSunbirdCredentials {
 	@Then("User enter the full name")
 	public void user_enter_the_full_name() {
 		try {
-			sunbirdCredentials.enterFullName(fullname);
+			//sunbirdCredentials.enterFullName(fullname);
+			sunbirdCredentials.enterFullName("testpolicy1");
 			test.log(Status.PASS, "User successfully entered the full name: " + fullname);
 		} catch (NoSuchElementException e) {
 			test.log(Status.FAIL, "Element not found while entering the full name: " + e.getMessage());

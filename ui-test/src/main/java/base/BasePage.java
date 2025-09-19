@@ -21,60 +21,140 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BasePage {
+	
+	public static void safeScrollIfNeeded(WebDriver driver, By locator) {
+	    int maxAttempts = 5;
+	    int attempt = 0;
 
-	public void clickOnElement(WebDriver driver, By locator) {
-		WebElement element = new WebDriverWait(driver, Duration.ofSeconds(30))
-				.until(ExpectedConditions.presenceOfElementLocated(locator));
-		element.click();
+	    while (attempt < maxAttempts) {
+	        try {
+	            WebElement element = driver.findElement(locator);
+
+	            // Check if at least part of element is in viewport (not strict full fit)
+	            Boolean partiallyInViewport = (Boolean) ((JavascriptExecutor) driver).executeScript(
+	                    "var elem = arguments[0];" +
+	                    "var rect = elem.getBoundingClientRect();" +
+	                    "return (" +
+	                    "rect.bottom > 0 && rect.right > 0 && " +
+	                    "rect.top < (window.innerHeight || document.documentElement.clientHeight) && " +
+	                    "rect.left < (window.innerWidth || document.documentElement.clientWidth)" +
+	                    ");", element);
+
+	            if (partiallyInViewport) {
+	                return; // Already at least partially visible
+	            }
+
+	            // Scroll into center of viewport (instant, no smooth animation)
+	            ((JavascriptExecutor) driver).executeScript(
+	                    "arguments[0].scrollIntoView({behavior: 'instant', block: 'center', inline: 'center'});",
+	                    element);
+
+	            // Additional parent scrolling if needed (jump bigger each attempt)
+	            ((JavascriptExecutor) driver).executeScript(
+	                    "var el = arguments[0];" +
+	                    "while(el && el.parentElement) {" +
+	                    "  el = el.parentElement;" +
+	                    "  if(el.scrollHeight > el.clientHeight) {" +
+	                    "    el.scrollTop = el.scrollTop + 200;" +
+	                    "  }" +
+	                    "}", element);
+
+	            Thread.sleep(300); // small pause
+
+	        } catch (NoSuchElementException e) {
+	            System.out.println("Attempt " + (attempt + 1) + ": Element not found. Retrying...");
+	        } catch (StaleElementReferenceException e) {
+	            System.out.println("Attempt " + (attempt + 1) + ": Element stale. Retrying...");
+	        } catch (Exception e) {
+	            System.out.println("Attempt " + (attempt + 1) + ": Unexpected error: " + e.getMessage());
+	        }
+
+	        attempt++;
+	    }
+
+	    System.out.println("⚠️ Warning: Element " + locator + " not visible after " + maxAttempts + " attempts.");
 	}
 
-	protected final Logger logger = LoggerFactory.getLogger(getClass());
+    public void clickOnElement(WebDriver driver, By locator) {
+        WebElement element = new WebDriverWait(driver, Duration.ofSeconds(30))
+                .until(ExpectedConditions.presenceOfElementLocated(locator));
+        safeScrollIfNeeded(driver, locator);
+        element.click();
+    }
 
-	public Logger getLogger() {
-		return logger;
-	}
+    public static boolean isElementIsVisible(WebDriver driver, By by) {
+        try {
+            new WebDriverWait(driver, Duration.ofSeconds(30))
+                    .until(ExpectedConditions.visibilityOfElementLocated(by));
+            safeScrollIfNeeded(driver, by);
+            return driver.findElement(by).isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
-	public static boolean isElementIsVisible(WebDriver driver, By by) {
-		try {
-			(new WebDriverWait(driver, Duration.ofSeconds(30)))
-					.until(ExpectedConditions.visibilityOfElementLocated(by));
-			return driver.findElement(by).isDisplayed();
-		} catch (Exception e) {
-			return false;
-		}
-	}
+    public static boolean isElementIsVisible(WebDriver driver, By by, int timeoutInSeconds) {
+        try {
+            new WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+                    .until(ExpectedConditions.visibilityOfElementLocated(by));
+            safeScrollIfNeeded(driver, by);
+            return driver.findElement(by).isDisplayed();
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
-	public static boolean isElementNotVisible(WebDriver driver, By by) {
-		try {
-			WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
-			return wait.until(ExpectedConditions.invisibilityOfElementLocated(by));
-		} catch (Exception e) {
-			return true; // Treat errors as "not visible"
-		}
-	}
+    public static void clickOnElement(WebDriver driver, By locator, int timeoutInSeconds) {
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds));
+            WebElement element = wait.until(ExpectedConditions.elementToBeClickable(locator));
+            safeScrollIfNeeded(driver, locator);
+            element.click();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to click on element: " + locator, e);
+        }
+    }
 
-	public void enterText(WebDriver driver, By locator, String text) {
-		WebElement element = new WebDriverWait(driver, Duration.ofSeconds(30))
-				.until(ExpectedConditions.presenceOfElementLocated(locator));
-		element.clear();
-		element.sendKeys(text);
-	}
+    public static boolean isElementNotVisible(WebDriver driver, By by) {
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            return wait.until(ExpectedConditions.invisibilityOfElementLocated(by));
+        } catch (Exception e) {
+            try {
+                safeScrollIfNeeded(driver, by);
+                WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+                return wait.until(ExpectedConditions.invisibilityOfElementLocated(by));
+            } catch (Exception ex) {
+                return true;
+            }
+        }
+    }
 
-	public String getElementText(WebDriver driver, By locator) {
-		WebElement element = new WebDriverWait(driver, Duration.ofSeconds(30))
-				.until(ExpectedConditions.presenceOfElementLocated(locator));
-		return element.getText();
-	}
+    public void enterText(WebDriver driver, By locator, String text) {
+        WebElement element = new WebDriverWait(driver, Duration.ofSeconds(30))
+                .until(ExpectedConditions.presenceOfElementLocated(locator));
+        safeScrollIfNeeded(driver, locator);
+        element.clear();
+        element.sendKeys(text);
+    }
 
-	public List<String> getElementTexts(WebDriver driver, By locator) throws TimeoutException {
-		List<String> textContents = new ArrayList<>();
-		List<WebElement> elements = new WebDriverWait(driver, Duration.ofSeconds(30))
-				.until(ExpectedConditions.presenceOfAllElementsLocatedBy(locator));
-		for (WebElement element : elements) {
-			textContents.add(element.getText());
-		}
-		return textContents;
-	}
+    public String getElementText(WebDriver driver, By locator) {
+        WebElement element = new WebDriverWait(driver, Duration.ofSeconds(30))
+                .until(ExpectedConditions.presenceOfElementLocated(locator));
+        safeScrollIfNeeded(driver, locator);
+        return element.getText();
+    }
+
+    public List<String> getElementTexts(WebDriver driver, By locator) throws TimeoutException {
+        List<String> textContents = new ArrayList<>();
+        List<WebElement> elements = new WebDriverWait(driver, Duration.ofSeconds(30))
+                .until(ExpectedConditions.presenceOfAllElementsLocatedBy(locator));
+        for (WebElement element : elements) {
+            safeScrollIfNeeded(driver, locator);
+            textContents.add(element.getText());
+        }
+        return textContents;
+    }
 
 	public static String getKeyValueFromYaml(String filePath, String key) {
 		FileReader reader = null;
@@ -120,15 +200,16 @@ public class BasePage {
 		Response response = requestSpec.put(baseURL + endpoint);
 	}
 
-	public static boolean isElementEnabled(WebDriver driver, By by) {
-		try {
-			(new WebDriverWait(driver, Duration.ofSeconds(10)))
-					.until(ExpectedConditions.visibilityOfElementLocated(by));
-			return driver.findElement(by).isEnabled();
-		} catch (Exception e) {
-			return false;
-		}
-	}
+    public static boolean isElementEnabled(WebDriver driver, By by) {
+        try {
+            new WebDriverWait(driver, Duration.ofSeconds(10))
+                    .until(ExpectedConditions.visibilityOfElementLocated(by));
+            safeScrollIfNeeded(driver, by);
+            return driver.findElement(by).isEnabled();
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
 	public String waitForUrlContains(WebDriver driver, String partialUrl, int timeoutInSeconds) {
 		try {
@@ -153,10 +234,22 @@ public class BasePage {
 				});
 	}
 
-	public String getElementAttribute(WebDriver driver, By locator, String data) {
-		WebElement element = new WebDriverWait(driver, Duration.ofSeconds(30))
-				.until(ExpectedConditions.presenceOfElementLocated(locator));
-		return element.getAttribute(data);
+    public String getElementAttribute(WebDriver driver, By locator, String data) {
+        WebElement element = new WebDriverWait(driver, Duration.ofSeconds(30))
+                .until(ExpectedConditions.presenceOfElementLocated(locator));
+        safeScrollIfNeeded(driver, locator);
+        return element.getAttribute(data);
+    }
+
+	public void waitUntilElementEnabled(WebDriver driver, By locator, int timeoutSeconds) {
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
+		wait.until(ExpectedConditions.elementToBeClickable(locator));
 	}
 
+    public int getXCordinateValue(WebDriver driver, By locator) {
+        WebElement element = new WebDriverWait(driver, Duration.ofSeconds(30))
+                .until(ExpectedConditions.presenceOfElementLocated(locator));
+        return element.getLocation().getX();
+
+    }
 }

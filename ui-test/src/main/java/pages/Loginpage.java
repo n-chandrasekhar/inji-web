@@ -40,7 +40,7 @@ public class Loginpage extends BasePage {
 	}
 
 	public void enterPasscode(String string) {
-		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
 		wait.until(ExpectedConditions.visibilityOfElementLocated(
 				By.xpath("//div[@data-testid='passcode-container']//input[@type='password' and @maxlength='1']")));
 
@@ -252,6 +252,18 @@ public class Loginpage extends BasePage {
 		clickOnElement(driver, By.xpath("//div[@data-testid='profile-dropdown']//div[text()='Profile']"));
 	}
 
+	public void clickOnProfileOptionMobileView() {
+		clickOnElement(driver, By.xpath("//div[text()='Profile']"));
+	}
+	
+	public void clickOnLogoutOptionMobileView() {
+		clickOnElement(driver, By.xpath("//div[text()='Logout']"));
+	}
+	
+	public void clickOnFaqOptionMobileView() {
+		clickOnElement(driver, By.xpath("//div[text()='FAQ']"));
+	}
+
 	public String getTextMyProfile() {
 		return getElementText(driver, By.xpath("//span[@data-testid='profile-page']"));
 
@@ -452,6 +464,19 @@ public class Loginpage extends BasePage {
 			return false;
 		}
 	}
+	
+	public boolean isMobileMenuOptionPresent(String optionText) {
+	    try {
+	        String xpath = String.format("//div[@data-testid='hamburger-menu-dropdown']//div[text()='%s']", optionText);
+	        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+	        wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath(xpath)));
+	        return isElementIsVisible(driver, By.xpath(xpath));
+
+	    } catch (NoSuchElementException e) {
+	        return false;
+	    }
+	}
+
 
 	public void clickonFAQLink() {
 		clickOnElement(driver, By.xpath("//div[@data-testid='profile-dropdown']//div[text()='FAQ']"));
@@ -467,11 +492,19 @@ public class Loginpage extends BasePage {
 	}
 
 	public Boolean isPermLockWarningMsgDisplayed() {
-		return isElementIsVisible(driver, By.xpath("//div/*[@data-testid='error-msg-passcode-last-attempt-before-lockout']"));
+		return isElementIsVisible(driver,
+				By.xpath("//div/*[@data-testid='error-msg-passcode-last-attempt-before-lockout']"));
 	}
-	
+
 	public Boolean isPermLockMsgDisplayed() {
 		return isElementIsVisible(driver, By.xpath("//div/*[@data-testid='error-msg-passcode-permanently-locked']"));
+	}
+
+	public void waitUntilPasscodeEnabled() {
+		waitUntilElementEnabled(driver, By.cssSelector("input[data-testid='input-passcode']"), 10);
+	}
+	public void clickOnHamburgerMenu() {
+		clickOnElement(driver, By.xpath("//div[@data-testid='hamburger-menu']"));
 	}
 
 }
